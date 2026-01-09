@@ -36,7 +36,7 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.42.0"
+        default: "v0.43.0"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_ref:
         type: string
@@ -311,7 +311,7 @@ jobs:
         env:
           AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
           AUTHOR_NAME: ${{ github.actor }}
-          DRIFT_DETECTION_BRANCH: ${{ inputs.pipelines_drift_detection_branch }}
+          DRIFT_DETECTION_BRANCH: ${{ inputs.pipelines_drift_detection_branch || 'drift-detection' }}
           DRIFT_DETECTION_FILTER: ${{ inputs.pipelines_drift_detection_filter }}
           GH_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
         run: |
