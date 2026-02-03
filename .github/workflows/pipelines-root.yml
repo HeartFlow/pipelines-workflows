@@ -30,15 +30,15 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.43.0"
+        default: "v0.45.0"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_ref:
         type: string
-        default: "v4.1.3"
+        default: "v4.2.0"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_credentials_ref:
         type: string
-        default: "v1.0.4"
+        default: "v1.2.0"
         description: "For Gruntwork internal testing - the ref of the pipelines credentials to use"
 
     secrets:
@@ -81,7 +81,7 @@ jobs:
           echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
 
       - name: Checkout Pipelines Credentials
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-credentials
           repository: gruntwork-io/pipelines-credentials
@@ -105,7 +105,7 @@ jobs:
 
       - name: Fetch Create PR Token
         id: pipelines-propose-infra-change-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
@@ -130,7 +130,7 @@ jobs:
 
       - name: Checkout Pipelines Actions
         id: checkout_actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
@@ -153,7 +153,7 @@ jobs:
           gh pr comment $pull_number -b "$msg" -R $GITHUB_ORG || true # || true incase this fails on a non-PR run
 
       - name: Check out repo code
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: infra-live-repo
           fetch-depth: 0
@@ -208,7 +208,7 @@ jobs:
           echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
 
       - name: Checkout Pipelines Credentials
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-credentials
           repository: gruntwork-io/pipelines-credentials
@@ -240,14 +240,14 @@ jobs:
 
       - name: Fetch Propose Infra Change Token
         id: pipelines-propose-infra-change-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
@@ -255,7 +255,7 @@ jobs:
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check out repo code
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: infra-live-repo
           fetch-depth: 0
@@ -269,7 +269,7 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac #  v2.4.4
         with:
           install: true
           cache: true
@@ -408,7 +408,7 @@ jobs:
           echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
 
       - name: Checkout Pipelines Credentials
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-credentials
           repository: gruntwork-io/pipelines-credentials
@@ -439,7 +439,7 @@ jobs:
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
@@ -447,7 +447,7 @@ jobs:
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check out repo code
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: infra-live-repo
           fetch-depth: 0
@@ -461,7 +461,7 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac #  v2.4.4
         with:
           install: true
           cache: true
@@ -524,7 +524,7 @@ jobs:
           echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
 
       - name: Checkout Pipelines Credentials
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-credentials
           repository: gruntwork-io/pipelines-credentials
@@ -555,7 +555,7 @@ jobs:
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
@@ -563,7 +563,7 @@ jobs:
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check out repo code
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: infra-live-repo
           fetch-depth: 0
@@ -635,9 +635,16 @@ jobs:
           echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
           echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
 
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -645,7 +652,7 @@ jobs:
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -653,14 +660,14 @@ jobs:
 
       - name: Fetch Create PR Token
         id: pipelines-propose-infra-change-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
@@ -668,7 +675,7 @@ jobs:
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check out repo code
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: infra-live-repo
           fetch-depth: 0
