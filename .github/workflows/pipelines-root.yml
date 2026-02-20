@@ -63,7 +63,7 @@ env:
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
-  TG_PARALLELISM: 4
+  TG_PARALLELISM: 1
 
 jobs:
   pipelines_orchestrate:
