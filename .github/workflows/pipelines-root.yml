@@ -21,6 +21,12 @@ on:
       runner:
         type: string
         default: '"hf-ubuntu-runner"'
+      # Optional runner for the plan/apply jobs only, in the same format as runner.
+      # For units that need network access the other jobs don't, such as an internal
+      # API; empty uses runner.
+      execute_runner:
+        type: string
+        default: ""
       api_base_url:
         type: string
         default: "https://api.prod.app.gruntwork.io/api/v1"
@@ -219,7 +225,7 @@ jobs:
       JOB_NAME: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     needs: [pipelines_orchestrate]
-    runs-on: ${{ fromJSON(inputs.runner) }}
+    runs-on: ${{ fromJSON(inputs.execute_runner || inputs.runner) }}
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0] != null
     strategy:
