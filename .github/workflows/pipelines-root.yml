@@ -36,7 +36,7 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.60.0"
+        default: "v0.70.0"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_repo:
         type: string
@@ -44,7 +44,7 @@ on:
         description: "Repository to fetch pipelines actions from (e.g. use your org/repo for self-hosted)"
       pipelines_actions_ref:
         type: string
-        default: "v4.12.0"
+        default: "v4.16.1"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_actions_customizations_repo:
         type: string
@@ -297,11 +297,11 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           install: true
           cache: true
-          version: 2026.4.11
+          version: 2026.10.18
           working_directory: "./infra-live-repo"
 
       - name: Configure code auth
@@ -346,14 +346,21 @@ jobs:
           job: ${{ toJson(matrix.jobs) }}
           account_names: ${{ matrix.jobs.AdditionalData.AccountNames }}
 
+      - name: "[ProvisionAccount]: Resolve Commit Author"
+        id: commit-author
+        if: ${{ matrix.jobs.ChangeType == 'AccountsRequested' && contains(matrix.jobs.Action.Command , 'apply')}}
+        uses: ./pipelines-actions/.github/actions/pipelines-commit-author
+        with:
+          GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
+
       - name: "[ProvisionAccount]: Create New Account Pull Request Action"
         if: ${{ matrix.jobs.ChangeType == 'AccountsRequested' && contains(matrix.jobs.Action.Command , 'apply')}}
         shell: bash
         env:
           GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
           JOB: ${{ toJson(matrix.jobs) }}
-          AUTHOR_NAME: ${{ github.actor }}
-          AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
+          AUTHOR_NAME: ${{ steps.commit-author.outputs.name }}
+          AUTHOR_EMAIL: ${{ steps.commit-author.outputs.email }}
         run: |
           pipelines account-factory propose-baseline-infra-change \
             --working-directory ./infra-live-repo \
@@ -502,11 +509,11 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           install: true
           cache: true
-          version: 2026.4.11
+          version: 2026.10.18
           working_directory: "./infra-live-repo"
 
       - name: Configure code auth
@@ -621,6 +628,39 @@ jobs:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
 
+      - name: "Create delegated repo and bootstrap"
+        id: provision_delegated_repo
+        uses: ./pipelines-actions/.github/actions/pipelines-provision-repo-action
+        with:
+          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
+          workflow_job_name: ${{ env.JOB_NAME }}
+          access_control_pull_request_url: ${{ steps.access_control_account_pr.outputs.pull_request_url }}
+          new_account_name: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0].Name }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          ORG_REPO_ADMIN_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
+
+      # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
+      - name: "Post create delegated repo custom actions"
+        uses: ./pipelines-actions-customizations/.github/custom-actions/post-create-delegated-repo
+        with:
+          access_control_pull_request_url: ${{ steps.access_control_account_pr.outputs.pull_request_url }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          ORG_REPO_ADMIN_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
+          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
+          account_names: ${{ join(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts.*.Name, ',') }}
+
+      - name: "Create delegated repo pull request"
+        uses: ./pipelines-actions/.github/actions/pipelines-new-pr-action
+        with:
+          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
+          delegated_repo_path: ${{ steps.provision_delegated_repo.outputs.delegated_repo_path }}
+          delegated_step_output_file_path: ${{ steps.provision_delegated_repo.outputs.step_output_file_path }}
+          delegated_step_output_file_name: ${{ steps.provision_delegated_repo.outputs.step_output_file_name }}
+          access_control_pr_url: ${{ steps.access_control_account_pr.outputs.pull_request_url }}
+          GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
+
       - name: "Provision access control account(s)"
         id: access_control_account
         uses: ./pipelines-actions/.github/actions/pipelines-provision-access-control-action
@@ -655,39 +695,6 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           ORG_REPO_ADMIN_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
 
-      - name: "Create delegated repo and bootstrap"
-        id: provision_delegated_repo
-        uses: ./pipelines-actions/.github/actions/pipelines-provision-repo-action
-        with:
-          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
-          workflow_job_name: ${{ env.JOB_NAME }}
-          access_control_pull_request_url: ${{ steps.access_control_account_pr.outputs.pull_request_url }}
-          new_account_name: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0].Name }}
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
-          ORG_REPO_ADMIN_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
-
-      # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
-      - name: "Post create delegated repo custom actions"
-        uses: ./pipelines-actions-customizations/.github/custom-actions/post-create-delegated-repo
-        with:
-          access_control_pull_request_url: ${{ steps.access_control_account_pr.outputs.pull_request_url }}
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
-          ORG_REPO_ADMIN_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
-          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
-          account_names: ${{ join(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts.*.Name, ',') }}
-
-      - name: "Create delegated repo pull request"
-        uses: ./pipelines-actions/.github/actions/pipelines-new-pr-action
-        with:
-          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
-          delegated_repo_path: ${{ steps.provision_delegated_repo.outputs.delegated_repo_path }}
-          delegated_step_output_file_path: ${{ steps.provision_delegated_repo.outputs.step_output_file_path }}
-          delegated_step_output_file_name: ${{ steps.provision_delegated_repo.outputs.step_output_file_name }}
-          access_control_pr_url: ${{ steps.access_control_account_pr.outputs.pull_request_url }}
-          GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
-
   pipelines_status_check:
     name: "Pipelines Status Check"
     runs-on: ${{ fromJSON(inputs.runner) }}
@@ -699,6 +706,8 @@ jobs:
         pipelines_setup_delegated_repo,
       ]
     if: always()
+    env:
+      JOB_NAME: "Pipelines Status Check"
     steps:
       - name: Record workflow env vars
         env:
@@ -753,11 +762,11 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           install: true
           cache: true
-          version: 2026.4.11
+          version: 2026.10.18
           working_directory: "./infra-live-repo"
 
       - name: Configure code auth
@@ -775,6 +784,16 @@ jobs:
           PIPELINES_PLAN_ENCRYPTION_KEY: ${{ secrets.PIPELINES_PLAN_ENCRYPTION_KEY }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
 
+      - name: Pipelines Error Hooks
+        id: hooks_error
+        if: always()
+        uses: ./pipelines-actions/.github/actions/pipelines-hooks-error
+        with:
+          GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          GH_ARTIFACT_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          PIPELINES_PLAN_ENCRYPTION_KEY: ${{ secrets.PIPELINES_PLAN_ENCRYPTION_KEY }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
+
       - name: Check Status
         if: always()
         shell: bash
@@ -785,10 +804,13 @@ jobs:
           GH_ARTIFACT_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
           AFTER_HOOKS_OUTPUT_FILE: ${{ steps.hooks_after.outputs.output_file }}
           AFTER_HOOKS_OUTCOME: ${{ steps.hooks_after.outcome }}
+          ERROR_HOOKS_OUTPUT_FILE: ${{ steps.hooks_error.outputs.output_file }}
+          ERROR_HOOKS_OUTCOME: ${{ steps.hooks_error.outcome }}
         run: |
           pipelines status-update finalize \
             --working-directory . \
             --after-hooks-output-file "$AFTER_HOOKS_OUTPUT_FILE" \
+            --error-hooks-output-file "$ERROR_HOOKS_OUTPUT_FILE" \
             --ci github-actions >/tmp/finalize-output.json
 
           pipelines inventory usage --working-directory . || true
@@ -799,7 +821,7 @@ jobs:
 
           printf '%.s─' $(seq 1 "$(tput -T dumb cols)")
           echo " "
-          if [[ "$AFTER_HOOKS_OUTCOME" != "failure" && "$pipeline_status" == "success" ]]; then
+          if [[ "$AFTER_HOOKS_OUTCOME" != "failure" && "$ERROR_HOOKS_OUTCOME" != "failure" && "$pipeline_status" == "success" ]]; then
             echo -e "✅ \033[1;32mPipeline Passed\033[0m"
             exit 0
           else

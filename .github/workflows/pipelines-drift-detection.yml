@@ -36,7 +36,7 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.60.0"
+        default: "v0.70.0"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_repo:
         type: string
@@ -44,7 +44,7 @@ on:
         description: "Repository to fetch pipelines actions from (e.g. use your org/repo for self-hosted)"
       pipelines_actions_ref:
         type: string
-        default: "v4.12.0"
+        default: "v4.16.1"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_credentials_repo:
         type: string
@@ -125,11 +125,11 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           install: true
           cache: true
-          version: 2026.4.11
+          version: 2026.10.18
           working_directory: "./infra-live-repo"
 
       - name: Install Pipelines CLI
@@ -208,11 +208,11 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           install: true
           cache: true
-          version: 2026.4.11
+          version: 2026.10.18
           working_directory: "./infra-live-repo"
 
       - name: Install Pipelines CLI
@@ -307,12 +307,18 @@ jobs:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
 
+      - name: Resolve Commit Author
+        id: commit-author
+        uses: ./pipelines-actions/.github/actions/pipelines-commit-author
+        with:
+          GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
+
       - name: "Consolidate Jobs"
         id: consolidate-jobs
         shell: bash
         env:
-          AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
-          AUTHOR_NAME: ${{ github.actor }}
+          AUTHOR_EMAIL: ${{ steps.commit-author.outputs.email }}
+          AUTHOR_NAME: ${{ steps.commit-author.outputs.name }}
           DRIFT_DETECTION_BRANCH: ${{ inputs.pipelines_drift_detection_branch || 'drift-detection' }}
           DRIFT_DETECTION_FILTER: ${{ inputs.pipelines_drift_detection_filter }}
           GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
